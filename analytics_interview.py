@@ -2,6 +2,7 @@ import glob
 import gzip
 import json
 from datetime import datetime
+from bson.json_util import dumps
 
 from pymongo import MongoClient
 from pymongo.operations import UpdateOne
@@ -148,14 +149,13 @@ def dump_to_json(file_path: str, collection) -> None:
     :param collection: e.g. `geoAggregation`
     :return: None
     """
-    data = list(collection.find())
-
-    with open(file_path, "w") as f:
-        json.dump(data, f)
+    cursor = collection.find({})
+    with open(file_path, "w") as file:
+        json.dump(json.loads(dumps(cursor)), file)
 
 
 if __name__ == "__main__":
-    client = MongoClient('mongodb://localhost:27017/')
+    client = MongoClient("mongodb://localhost:27017/")
 
     db = client.analyticsInterview
     individual_wins_collection = db.individualWins
