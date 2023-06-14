@@ -7,17 +7,14 @@ from pymongo import MongoClient
 from pymongo.operations import UpdateOne
 
 
-def parse_and_insert(file_path: str, collection, batch_size: int = 1000) -> None:
+def parse_and_insert(file_path: str, collection) -> None:
     """
     Parse a file.gz then insert into a Mongo collection.
 
     :param file_path: e.g. `raw-bid-win/2017/01/11/00/59/HVuIhurmB5909SKcwGMX.gz`
     :param collection: Mongo collection
-    :param batch_size: number of documents in a batch to insert into the collection
     :return: None
     """
-    documents = []
-
     with gzip.open(file_path, "rt") as gz_file:
         for line in gz_file:
             try:
@@ -52,7 +49,7 @@ def parse_and_insert(file_path: str, collection, batch_size: int = 1000) -> None
                     else 0
                 )
 
-                # Document to insert
+                # Insert document to the collection
                 document = {
                     "auctionId": auction_id,
                     "campaignId": campaign_id,
@@ -66,13 +63,12 @@ def parse_and_insert(file_path: str, collection, batch_size: int = 1000) -> None
                     "time": time,
                 }
 
-                documents.append(document)
-                if len(documents) >= batch_size:
-                    collection.insert_many(documents)
-                    documents = []
+                collection.insert_one(document)
 
             except json.JSONDecodeError:
-                continue
+                print("Error parsing JSON line")
+            except Exception as e:
+                print(f"An error occurred: {e}")
 
 
 def aggregate_and_upsert(source_collection, target_collection) -> None:
@@ -159,7 +155,7 @@ def dump_to_json(file_path: str, collection) -> None:
 
 
 if __name__ == "__main__":
-    client = MongoClient()
+    client = MongoClient('mongodb://localhost:27017/')
 
     db = client.analyticsInterview
     individual_wins_collection = db.individualWins
